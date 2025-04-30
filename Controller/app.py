@@ -3,12 +3,13 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import logging
-from models import Usuario, Produto, Pedido, ItemPedido
-
+import jwt
+from datetime import datetime, timedelta
+from functools import wraps
 """
-• Criar as rotas da API para listar, cadastrar, atualizar e deletar clientes e produtos.
+• Criar as rotas da API para listar, cadastrar, atualizar e deletar clientes e produtos. OK
 • Criar as rotas para registrar e consultar compras.
-• Utilizar SQLite para armazenar todas as informações de forma persistente.
+• Utilizar SQLite para armazenar todas as informações de forma persistente. OK
 • Garantir que as respostas da API estejam no formato JSON.
 • Tratar erros comuns, como tentativas de cadastro incompleto ou consulta a registros
 inexistentes.
@@ -144,3 +145,4 @@ def delete_product(id):
     db.session.commit()
     logging.info(f"Produto deletado: ID {id}")
     return {'message': 'Product deleted successfully'}, 200
+
