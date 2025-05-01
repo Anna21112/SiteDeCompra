@@ -6,6 +6,8 @@ import logging
 import jwt
 from datetime import datetime, timedelta
 from functools import wraps
+from Model.models import Usuario, Produto, Pedido, ItemPedido
+
 """
 • Criar as rotas da API para listar, cadastrar, atualizar e deletar clientes e produtos. OK
 • Criar as rotas para registrar e consultar compras.
