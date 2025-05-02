@@ -1,4 +1,4 @@
-from app import db
+from Model.extensions import db
 
 class Usuario(db.Model):
     __tablename__ = 'usuarios'
@@ -9,6 +9,14 @@ class Usuario(db.Model):
     tipo = db.Column(db.String(10), default='cliente')  # 'admin' ou 'cliente'
 
     pedidos = db.relationship('Pedido', backref='usuario', lazy=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'email': self.email,
+            'tipo': self.tipo
+        }
 
 class Produto(db.Model):
     __tablename__ = 'produtos'
@@ -18,8 +26,16 @@ class Produto(db.Model):
     preco = db.Column(db.Float, nullable=False)
     quantidade = db.Column(db.Integer, nullable=False)
     info = db.Column(db.Text)
-
-    itens_pedido = db.relationship('ItemPedido', backref='produto', lazy=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'tipo': self.tipo,
+            'preco': self.preco,
+            'quantidade': self.quantidade,
+            'info': self.info
+        }
 
 class Pedido(db.Model):
     __tablename__ = 'pedidos'
@@ -28,8 +44,17 @@ class Pedido(db.Model):
     status = db.Column(db.String(20), default='pendente')
     valor_total = db.Column(db.Float, default=0.0)
     codigo_rastreamento = db.Column(db.String(50))
-
-    itens = db.relationship('ItemPedido', backref='pedido', lazy=True)
+    data_criacao = db.Column(db.DateTime, default=db.func.current_timestamp())
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'usuario_id': self.usuario_id,
+            'status': self.status,
+            'valor_total': self.valor_total,
+            'codigo_rastreamento': self.codigo_rastreamento,
+            'data_criacao': self.data_criado.strftime('%Y-%m-%d %H:%M:%S')
+        }
 
 class ItemPedido(db.Model):
     __tablename__ = 'itens_pedido'
@@ -38,3 +63,14 @@ class ItemPedido(db.Model):
     produto_id = db.Column(db.Integer, db.ForeignKey('produtos.id'), nullable=False)
     quantidade = db.Column(db.Integer, nullable=False)
     preco_unitario = db.Column(db.Float, nullable=False)
+    
+    pedido = db.relationship('Pedido', backref='itens_pedido', lazy=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'pedido_id': self.pedido_id,
+            'produto_id': self.produto_id,
+            'quantidade': self.quantidade,
+            'preco_unitario': self.preco_unitario
+        }

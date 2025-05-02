@@ -10,18 +10,8 @@ import logging
 from logging.handlers import RotatingFileHandler
 from sqlalchemy import func
 
-from Model.models import Usuario, Produto, Pedido, ItemPedido
-
-"""
-• Criar as rotas da API para listar, cadastrar, atualizar e deletar clientes e produtos. OK
-• Criar as rotas para registrar e consultar compras. OK
-• Utilizar SQLite para armazenar todas as informações de forma persistente. OK
-• Garantir que as respostas da API estejam no formato JSON. OK
-• Tratar erros comuns, como tentativas de cadastro incompleto ou consulta a registros inexistentes. OK
-• Implementar autenticação básica para acesso às rotas de administração. OK
-• Criar um sistema de logs para registrar as operações realizadas na API. OK
-• AWT de login e senha para acesso ao sistema. OK
-"""
+# Importa o objeto `db` do arquivo extensions.py
+from Model.extensions import db
 
 # Inicialização do app Flask
 app = Flask(__name__)
@@ -31,9 +21,11 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'Model', 'sistema_vendas.sqlite')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-#  Inicialização do banco de dados
-db = SQLAlchemy(app)
 
+# Inicialização do banco de dados
+db.init_app(app)
+
+from Model.models import Usuario, Produto, Pedido, ItemPedido
 # ================== LOGS =====================
 
 #  Configuração do log da API
@@ -191,44 +183,66 @@ def get_order(id):
 @app.route('/orders', methods=['POST'])
 def add_order():
     data = request.get_json()
-    validate_fields(data, ['cliente_id', 'produtos'])
+    validate_fields(data, ['usuario_id', 'itens'])
 
-    new_order = Pedido(cliente_id=data['cliente_id'])
-    db.session.add(new_order)
-    db.session.commit()
+    # Ajuste o nome do atributo para o correto no modelo Pedido
+    novo_pedido = Pedido(usuario_id=data['usuario_id'], data_criacao=datetime.now())
+    db.session.add(novo_pedido)
+    db.session.flush()  # Garante que o ID do pedido seja gerado
 
-    for item in data['produtos']:
-        product = Produto.query.get_or_404(item['produto_id'])
-        new_item = ItemPedido(
-            pedido_id=new_order.id,
-            produto_id=product.id,
-            quantidade=item['quantidade']
+    for item in data['itens']:
+        produto = Produto.query.get(item['produto_id'])
+        if not produto:
+            return jsonify({'erro': f"Produto ID {item['produto_id']} não encontrado"}), 404
+        if produto.quantidade < item['quantidade']:
+            return jsonify({'erro': f"Estoque insuficiente para produto {produto.nome}"}), 400
+
+        produto.quantidade -= item['quantidade']
+        item_pedido = ItemPedido(
+            pedido_id=novo_pedido.id,
+            produto_id=produto.id,
+            quantidade=item['quantidade'],
+            preco_unitario=produto.preco
         )
-        db.session.add(new_item)
+        db.session.add(item_pedido)
 
     db.session.commit()
-    logging.info(f"Pedido cadastrado: ID {new_order.id}")
-    return {'message': 'Order added successfully'}, 201
+    app.logger.info(f"Compra registrada para cliente ID {data['usuario_id']}")
+    return jsonify({'mensagem': 'Compra registrada com sucesso', 'pedido_id': novo_pedido.id}), 201
 
 # Atualiza um pedido existente
-@app.route('/orders/<int:id>', methods=['PUT'])
-def update_order(id):
+@app.route('/orders/<int:pedido_id>', methods=['PUT'])
+def update_order(pedido_id):
     data = request.get_json()
-    order = Pedido.query.get_or_404(id)
+    validate_fields(data, ['itens'])
 
-    if 'produtos' in data:
-        for item in data['produtos']:
-            product = Produto.query.get_or_404(item['produto_id'])
-            new_item = ItemPedido(
-                pedido_id=order.id,
-                produto_id=product.id,
-                quantidade=item['quantidade']
-            )
-            db.session.add(new_item)
+    pedido = Pedido.query.get_or_404(pedido_id)
 
-    db.session.commit()
-    logging.info(f"Pedido atualizado: ID {id}")
-    return {'message': 'Order updated successfully'}, 200
+    # Reverter estoque anterior
+    itens_anteriores = ItemPedido.query.filter_by(pedido_id=pedido.id).all()
+    for item in itens_anteriores:
+        produto = Produto.query.get(item.produto_id)
+        produto.quantidade += item.quantidade
+        db.session.delete(item)
+
+    db.session.flush()
+
+    # Adicionar novos itens
+    for item in data['itens']:
+        produto = Produto.query.get(item['produto_id'])
+        if not produto:
+            return jsonify({'erro': f"Produto ID {item['produto_id']} não encontrado"}), 404
+        if produto.quantidade < item['quantidade']:
+            return jsonify({'erro': f"Estoque insuficiente para o produto {produto.nome}"}), 400
+
+        produto.quantidade -= item['quantidade']
+        novo_item = ItemPedido(
+            pedido_id=pedido.id,
+            produto_id=produto.id,
+            quantidade=item['quantidade'],
+            preco_unitario=produto.preco
+        )
+        db.session.add(novo_item)
 
 # Deleta um pedido existente
 @app.route('/orders/<int:id>', methods=['DELETE'])
@@ -259,9 +273,11 @@ def get_orders_by_client(client_id):
         ]
         pedidos_formatados.append({
             'pedido_id': pedido.id,
-            'data': pedido.data.strftime('%Y-%m-%d %H:%M:%S'),
+            'data_criacao': pedido.data_criacao.strftime('%Y-%m-%d %H:%M:%S'),
             'itens': itens_formatados
         })
+        
+    return jsonify({'pedidos': pedidos_formatados}), 200
 
 
 # ================== RELATÓRIO DE VENDAS POR PRODUTO COM FILTRO DE DATA =====================
@@ -273,23 +289,28 @@ def report_sales_by_product():
     data_fim = request.args.get('fim')
 
     query = db.session.query(
+        Produto.id,
         Produto.nome,
         func.sum(ItemPedido.quantidade).label('total_vendido')
-    ).join(ItemPedido, Produto.id == ItemPedido.produto_id)     .join(Pedido, Pedido.id == ItemPedido.pedido_id)
+    ).join(ItemPedido, Produto.id == ItemPedido.produto_id) \
+    .join(Pedido, Pedido.id == ItemPedido.pedido_id)
 
     if data_inicio and data_fim:
         try:
             data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d')
             data_fim = datetime.strptime(data_fim, '%Y-%m-%d')
-            query = query.filter(Pedido.data >= data_inicio, Pedido.data <= data_fim)
+            data_fim = data_fim.replace(hour=23, minute=59, second=59)
+            app.logger.info(f"Data início: {data_inicio}, Data fim: {data_fim}")
+            query = query.filter(Pedido.data_criacao >= data_inicio, Pedido.data_criacao <= data_fim)
         except ValueError:
             return jsonify({'erro': 'Formato de data inválido. Use AAAA-MM-DD'}), 400
 
     resultados = query.group_by(Produto.id).all()
+    app.logger.info(f"Resultados da query: {resultados}")
 
     relatorio = [
-        {'produto': nome, 'quantidade_vendida': int(total)}
-        for nome, total in resultados
+        {'produto_id': pid, 'produto_nome': nome, 'quantidade_vendida': int(total)}
+        for pid, nome, total in resultados
     ]
 
     return jsonify({'relatorio_vendas': relatorio}), 200
