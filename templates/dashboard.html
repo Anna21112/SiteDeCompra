@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Vendas</title>
+    <link rel="stylesheet" href="/static/css/styleDashboard.css">
+</head>
+<body>
+    <header>
+        <h1>Sistema de Vendas</h1>
+        <nav>
+            <ul>
+                <li><a href="/gerencia-clientes">Gerenciar Clientes</a></li>
+                <li><a href="/gerencia-produtos">Gerenciar Produtos</a></li>
+                <li><a href="/gerencia-pedidos">Gerenciar Pedidos</a></li>
+                <li><a href="/historico-compras">Histórico de Compras</a></li>
+                <li><a href="/logout" id="logout">Sair</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section class="overview">
+            <h2>Visão Geral</h2>
+            <div class="cards">
+                <div class="card">
+                    <h3>Total de Clientes</h3>
+                    <p id="totalClientes">0</p>
+                </div>
+                <div class="card">
+                    <h3>Total de Produtos</h3>
+                    <p id="totalProdutos">0</p>
+                </div>
+                <div class="card">
+                    <h3>Total de Pedidos</h3>
+                    <p id="totalPedidos">0</p>
+                </div>
+            </div>
+        </section>
+    </main>
+    <script>
+        // Fetch data for dashboard
+        async function fetchDashboardData() {
+            const totalClientes = await fetch('/clients').then(res => res.json());
+            const totalProdutos = await fetch('/products').then(res => res.json());
+            const totalPedidos = await fetch('/orders').then(res => res.json());
+
+            document.getElementById('totalClientes').textContent = totalClientes.clients.length;
+            document.getElementById('totalProdutos').textContent = totalProdutos.products.length;
+            document.getElementById('totalPedidos').textContent = totalPedidos.orders.length;
+        }
+
+        // Logout functionality
+        document.getElementById('logout').addEventListener('click', async function(e) {
+            e.preventDefault();
+            await fetch('/logout', { method: 'POST' });
+            window.location.href = '/login';
+        });
+
+        fetchDashboardData();
+    </script>
+</body>
+</html>

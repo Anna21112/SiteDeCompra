@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Produtos - Sistema de Vendas</title>
+    <link rel="stylesheet" href="/static/css/styleGerenciaProdutos.css">
+</head>
+<body>
+    <header>
+        <h1>Gerenciar Produtos</h1>
+        <nav>
+            <ul>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/gerencia-clientes">Gerenciar Clientes</a></li>
+                <li><a href="/gerencia-pedidos">Gerenciar Pedidos</a></li>
+                <li><a href="/historico-compras">Histórico de Compras</a></li>
+                <li><a href="/logout" id="logout">Sair</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section class="product-list">
+            <h2>Lista de Produtos</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Tipo</th>
+                        <th>Preço</th>
+                        <th>Quantidade</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="productTableBody">
+                    <!-- Os dados serão preenchidos dinamicamente -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+    <script>
+        // Fetch and display products
+        async function fetchProducts() {
+            const response = await fetch('/products');
+            const data = await response.json();
+            const tableBody = document.getElementById('productTableBody');
+            tableBody.innerHTML = '';
+
+            data.products.forEach(product => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${product.id}</td>
+                    <td>${product.nome}</td>
+                    <td>${product.tipo}</td>
+                    <td>R$ ${product.preco.toFixed(2)}</td>
+                    <td>${product.quantidade}</td>
+                    <td>
+                        <button onclick="editProduct(${product.id})">Editar</button>
+                        <button onclick="deleteProduct(${product.id})">Excluir</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Delete a product
+        async function deleteProduct(productId) {
+            if (confirm('Tem certeza que deseja excluir este produto?')) {
+                const response = await fetch(`/products/${productId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    alert('Produto excluído com sucesso!');
+                    fetchProducts();
+                } else {
+                    alert('Erro ao excluir produto.');
+                }
+            }
+        }
+
+        // Edit product (redirect to a form or modal)
+        function editProduct(productId) {
+            window.location.href = `/cadastro-produto?edit=${productId}`;
+        }
+
+        // Logout functionality
+        document.getElementById('logout').addEventListener('click', async function(e) {
+            e.preventDefault();
+            await fetch('/logout', { method: 'POST' });
+            window.location.href = '/login';
+        });
+
+        // Fetch products on page load
+        fetchProducts();
+    </script>
+</body>
+</html>

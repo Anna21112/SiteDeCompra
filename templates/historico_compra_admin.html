@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico de Compras - Sistema de Vendas</title>
+    <link rel="stylesheet" href="/static/css/styleHistoricoCompras.css">
+</head>
+<body>
+    <header>
+        <h1>Histórico de Compras</h1>
+        <nav>
+            <ul>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/gerencia-clientes">Gerenciar Clientes</a></li>
+                <li><a href="/gerencia-produtos">Gerenciar Produtos</a></li>
+                <li><a href="/gerencia-pedidos">Gerenciar Pedidos</a></li>
+                <li><a href="/logout" id="logout">Sair</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section class="purchase-history">
+            <h2>Lista de Compras</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>Data</th>
+                        <th>Valor Total</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="purchaseTableBody">
+                    <!-- Os dados serão preenchidos dinamicamente -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+    <script>
+        // Fetch and display purchase history
+        async function fetchPurchaseHistory() {
+            const response = await fetch('/orders');
+            const data = await response.json();
+            const tableBody = document.getElementById('purchaseTableBody');
+            tableBody.innerHTML = '';
+
+            data.orders.forEach(order => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${order.id}</td>
+                    <td>${order.usuario_id}</td>
+                    <td>${order.data_criacao}</td>
+                    <td>R$ ${order.valor_total.toFixed(2)}</td>
+                    <td>${order.status}</td>
+                    <td>
+                        <button onclick="viewOrder(${order.id})">Visualizar</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // View order details (redirect to a detailed page or modal)
+        function viewOrder(orderId) {
+            window.location.href = `/orders/${orderId}`;
+        }
+
+        // Logout functionality
+        document.getElementById('logout').addEventListener('click', async function(e) {
+            e.preventDefault();
+            await fetch('/logout', { method: 'POST' });
+            window.location.href = '/login';
+        });
+
+        // Fetch purchase history on page load
+        fetchPurchaseHistory();
+    </script>
+</body>
+</html>

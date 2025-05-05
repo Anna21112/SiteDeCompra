@@ -9,6 +9,8 @@ from functools import wraps
 import logging
 from logging.handlers import RotatingFileHandler
 from sqlalchemy import func
+from flask import render_template
+from flask import redirect, url_for
 
 # Importa o objeto `db` do arquivo extensions.py
 from Model.extensions import db
@@ -338,7 +340,8 @@ def login():
         'exp': datetime.utcnow() + timedelta(hours=1)
     }, 'secret_key', algorithm='HS256')
 
-    return jsonify({'token': token}), 200
+    # Redirecionar para o dashboard após o login
+    return redirect(url_for('dashboard'))
 
 
 # Decorador para proteger rotas
@@ -376,6 +379,40 @@ def logout():
 def handle_exception(e):
     app.logger.error(f"Erro: {str(e)}", exc_info=True)
     return jsonify({'error': 'Ocorreu um erro interno'}), 500
+
+
+#===================== TEMPLATES =====================
+@app.route('/login', methods=['GET'])
+def render_login():
+    return render_template('login.html')
+
+@app.route('/cadastro', methods=['GET'])
+def render_cadastro():
+    return render_template('cadastro.html')
+
+@app.route('/dashboard', methods=['GET'])
+def render_dashboard():
+    return render_template('dashboard.html')
+
+@app.route('/gerencia-clientes', methods=['GET'])
+def render_gerencia_clientes():
+    return render_template('gerencia_clientes.html')
+
+@app.route('/gerencia-pedidos', methods=['GET'])
+def render_gerencia_pedidos():
+    return render_template('gerencia_pedidos.html')
+
+@app.route('/gerencia-produtos', methods=['GET'])
+def render_gerencia_produtos():
+    return render_template('gerencia_produtos.html')
+
+@app.route('/histo rico-compras', methods=['GET'])
+def render_historico_compras():
+    return render_template('historico_compra_admin.html')
+
+@app.route('/gerencia-usuarios', methods=['GET'])
+def render_gerencia_usuarios():
+    return render_template('gerencia_usuarios.html')
 
 # ================== EXECUÇÃO DO APP =====================
 if __name__ == '__main__':

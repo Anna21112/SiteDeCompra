@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Pedidos - Sistema de Vendas</title>
+    <link rel="stylesheet" href="/static/css/styleGerenciaPedidos.css">
+</head>
+<body>
+    <header>
+        <h1>Gerenciar Pedidos</h1>
+        <nav>
+            <ul>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/gerencia-clientes">Gerenciar Clientes</a></li>
+                <li><a href="/gerencia-produtos">Gerenciar Produtos</a></li>
+                <li><a href="/historico-compras">Histórico de Compras</a></li>
+                <li><a href="/logout" id="logout">Sair</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section class="order-list">
+            <h2>Lista de Pedidos</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>Status</th>
+                        <th>Valor Total</th>
+                        <th>Data</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="orderTableBody">
+                    <!-- Os dados serão preenchidos dinamicamente -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+    <script>
+        // Fetch and display orders
+        async function fetchOrders() {
+            const response = await fetch('/orders');
+            const data = await response.json();
+            const tableBody = document.getElementById('orderTableBody');
+            tableBody.innerHTML = '';
+
+            data.orders.forEach(order => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${order.id}</td>
+                    <td>${order.usuario_id}</td>
+                    <td>${order.status}</td>
+                    <td>R$ ${order.valor_total.toFixed(2)}</td>
+                    <td>${order.data_criacao}</td>
+                    <td>
+                        <button onclick="viewOrder(${order.id})">Visualizar</button>
+                        <button onclick="deleteOrder(${order.id})">Excluir</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Delete an order
+        async function deleteOrder(orderId) {
+            if (confirm('Tem certeza que deseja excluir este pedido?')) {
+                const response = await fetch(`/orders/${orderId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    alert('Pedido excluído com sucesso!');
+                    fetchOrders();
+                } else {
+                    alert('Erro ao excluir pedido.');
+                }
+            }
+        }
+
+        // View order details (redirect to a detailed page or modal)
+        function viewOrder(orderId) {
+            window.location.href = `/orders/${orderId}`;
+        }
+
+        // Logout functionality
+        document.getElementById('logout').addEventListener('click', async function(e) {
+            e.preventDefault();
+            await fetch('/logout', { method: 'POST' });
+            window.location.href = '/login';
+        });
+
+        // Fetch orders on page load
+        fetchOrders();
+    </script>
+</body>
+</html>
