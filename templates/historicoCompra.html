@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico de Compras</title>
+    <link rel="stylesheet" href="static/css/historicoCompra.css">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">Minha Loja</div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="/dashboardClient" class="nav-link active">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/novaCompra" class="nav-link">Nova Compra</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/historicoComprasClient" class="nav-link">Histórico de Compras</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/visualizarProdutos" class="nav-link">Visualizar Produtos</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/meuPerfil" class="nav-link">Meu Perfil</a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="header">
+                <h1 class="page-title">HISTÓRICO DE COMPRAS</h1>
+            </div>
+
+            <div class="historico-container">
+                <div class="filtros">
+                    <div class="filtro-group">
+                        <label for="data-inicio">Data Início:</label>
+                        <input type="date" id="data-inicio" class="filtro-input">
+                    </div>
+                    <div class="filtro-group">
+                        <label for="data-fim">Data Fim:</label>
+                        <input type="date" id="data-fim" class="filtro-input">
+                    </div>
+                    <button class="aplicar-filtro">Aplicar Filtro</button>
+                </div>
+
+                <div class="compras-list">
+                    <div class="compra-item">
+                        <div class="compra-data">1 de setembro de 2025</div>
+                        <div class="compra-valor">R$ 2.500,00</div>
+                        <button class="detalhes-btn">Ver Detalhes</button>
+                    </div>
+                    <div class="compra-item">
+                        <div class="compra-data">15 de agosto de 2025</div>
+                        <div class="compra-valor">R$ 1.200,00</div>
+                        <button class="detalhes-btn">Ver Detalhes</button>
+                    </div>
+                    <div class="compra-item">
+                        <div class="compra-data">2 de junho de 2025</div>
+                        <div class="compra-valor">R$ 4.100,00</div>
+                        <button class="detalhes-btn">Ver Detalhes</button>
+                    </div>
+                </div>
+
+                <div class="paginacao">
+                    <button class="pagina-btn">1</button>
+                    <button class="pagina-btn">2</button>
+                    <button class="pagina-btn">3</button>
+                    <span>...</span>
+                    <button class="pagina-btn">10</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elementos do DOM
+            const comprasList = document.querySelector('.compras-list');
+            const dataInicioInput = document.getElementById('data-inicio');
+            const dataFimInput = document.getElementById('data-fim');
+            const aplicarFiltroBtn = document.querySelector('.aplicar-filtro');
+        
+            // Variável global para armazenar as compras
+            let compras = [];
+        
+            // Função para formatar data
+            function formatarData(dataString) {
+                const options = { day: 'numeric', month: 'long', year: 'numeric' };
+                return new Date(dataString).toLocaleDateString('pt-BR', options);
+            }
+        
+            // Função para formatar valor monetário
+            function formatarValor(valor) {
+                return 'R$ ' + valor.toFixed(2).replace('.', ',');
+            }
+        
+            // Função para renderizar lista de compras
+            function renderizarCompras(comprasFiltradas = compras) {
+                comprasList.innerHTML = '';
+                
+                comprasFiltradas.forEach(compra => {
+                    const compraItem = document.createElement('div');
+                    compraItem.className = 'compra-item';
+                    compraItem.innerHTML = `
+                        <div class="compra-data">${formatarData(compra.data_criacao)}</div>
+                        <div class="compra-valor">${formatarValor(compra.valor_total)}</div>
+                        <button class="detalhes-btn" data-id="${compra.pedido_id}">Ver Detalhes</button>
+                    `;
+                    comprasList.appendChild(compraItem);
+                });
+        
+                // Adicionar eventos aos botões de detalhes
+                document.querySelectorAll('.detalhes-btn').forEach(btn => {
+                    btn.addEventListener('click', mostrarDetalhesCompra);
+                });
+            }
+        
+            // Função para buscar histórico de compras do cliente
+            async function buscarHistoricoCompras() {
+                const clientId = localStorage.getItem('clientId'); // Obtém o clientId do localStorage
+                if (!clientId) {
+                    alert('Erro: Cliente não identificado.');
+                    return;
+                }
+        
+                try {
+                    const response = await fetch(`/orders/client/${clientId}`);
+                    if (!response.ok) {
+                        throw new Error('Erro ao buscar histórico de compras');
+                    }
+                    const data = await response.json();
+                    compras = data.pedidos; // Armazena os dados no array global
+                    renderizarCompras();
+                } catch (error) {
+                    console.error('Erro:', error);
+                    alert('Erro ao carregar histórico de compras. Tente novamente mais tarde.');
+                }
+            }
+        
+            // Função para mostrar detalhes da compra
+            function mostrarDetalhesCompra(e) {
+                const compraId = parseInt(e.target.getAttribute('data-id'));
+                const compra = compras.find(c => c.pedido_id === compraId);
+        
+                if (!compra) {
+                    alert('Erro: Detalhes da compra não encontrados.');
+                    return;
+                }
+        
+                // Exibir detalhes da compra
+                const detalhes = `
+                    Pedido ID: ${compra.pedido_id}
+                    Data: ${formatarData(compra.data_criacao)}
+                    Valor Total: ${formatarValor(compra.valor_total)}
+                    Itens:
+                    ${compra.itens.map(item => `
+                        - Produto: ${item.produto_nome}
+                        - Quantidade: ${item.quantidade}
+                        - Preço Unitário: ${formatarValor(item.preco_unitario)}
+                    `).join('\n')}
+                `;
+                alert(detalhes);
+            }
+        
+            // Função para filtrar compras por data
+            function filtrarCompras() {
+                const dataInicio = dataInicioInput.value ? new Date(dataInicioInput.value) : null;
+                const dataFim = dataFimInput.value ? new Date(dataFimInput.value) : null;
+        
+                const comprasFiltradas = compras.filter(compra => {
+                    const dataCompra = new Date(compra.data_criacao);
+                    return (!dataInicio || dataCompra >= dataInicio) && (!dataFim || dataCompra <= dataFim);
+                });
+        
+                renderizarCompras(comprasFiltradas);
+            }
+        
+            // Eventos
+            aplicarFiltroBtn.addEventListener('click', filtrarCompras);
+        
+            // Inicializar
+            buscarHistoricoCompras();
+        });
+    </script>
+</body>
+</html>

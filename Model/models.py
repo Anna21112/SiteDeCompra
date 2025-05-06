@@ -45,7 +45,10 @@ class Pedido(db.Model):
     valor_total = db.Column(db.Float, default=0.0)
     codigo_rastreamento = db.Column(db.String(50))
     data_criacao = db.Column(db.DateTime, default=db.func.current_timestamp())
-    
+
+    def calcular_valor_total(self):
+        self.valor_total = sum(item.preco_unitario * item.quantidade for item in self.itens_pedido)
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -53,7 +56,7 @@ class Pedido(db.Model):
             'status': self.status,
             'valor_total': self.valor_total,
             'codigo_rastreamento': self.codigo_rastreamento,
-            'data_criacao': self.data_criado.strftime('%Y-%m-%d %H:%M:%S')
+            'data_criacao': self.data_criacao.strftime('%Y-%m-%d %H:%M:%S')
         }
 
 class ItemPedido(db.Model):

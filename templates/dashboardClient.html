@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Conta - Dashboard</title>
+    <link rel="stylesheet" href="/static/css/styleDashboardClient.css">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">Minha Loja</div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="/dashboardClient" class="nav-link active">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/novaCompra" class="nav-link">Nova Compra</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/historicoComprasClient" class="nav-link">Histórico de Compras</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/visualizarProdutos" class="nav-link">Visualizar Produtos</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/meuPerfil" class="nav-link">Meu Perfil</a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="header">
+                <h1 class="page-title">DASHBOARD</h1>
+            </div>
+
+            <div class="dashboard-cards">
+                <div class="card">
+                    <div class="card-icon">📅</div>
+                    <h3 class="card-title">Última Compra</h3>
+                    <p class="card-value">1 de setembro de 2025</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon">💰</div>
+                    <h3 class="card-title">Total Gasto</h3>
+                    <p class="card-value">R$ 7.800,00</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon">🛒</div>
+                    <h3 class="card-title">Compras Realizadas</h3>
+                    <p class="card-value">5</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Função para carregar os dados do usuário
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // Função para carregar os dados do dashboard
+            function carregarDadosDashboard() {
+                const clientId = localStorage.getItem('clientId'); // Obtém o clientId do localStorage
+        
+                fetch(`/api/user-dashboard?clientId=${clientId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erro ao carregar os dados do dashboard');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Atualiza os valores no dashboard
+                    document.querySelector('.dashboard-cards .card:nth-child(1) .card-value').textContent = data.lastPurchase
+                        ? formatDate(data.lastPurchase)
+                        : 'Nenhuma compra';
+                    document.querySelector('.dashboard-cards .card:nth-child(2) .card-value').textContent = 'R$ ' + formatCurrency(data.totalSpent);
+                    document.querySelector('.dashboard-cards .card:nth-child(3) .card-value').textContent = data.purchasesCount;
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar os dados:', error);
+                });
+            }
+        
+            // Funções auxiliares
+            function formatDate(dateString) {
+                const options = { day: 'numeric', month: 'long', year: 'numeric' };
+                return new Date(dateString).toLocaleDateString('pt-BR', options);
+            }
+        
+            function formatCurrency(value) {
+                return value.toFixed(2).replace('.', ',');
+            }
+        
+            // Chama a função para carregar os dados do dashboard
+            carregarDadosDashboard();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Vendas</title>
+    <link rel="stylesheet" href="static/css/styleRelatorio.css">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <header>
+        <h1>Sistema de Vendas</h1>
+        <nav>
+            <ul>
+                <li><a href="/gerenciaClientes">Gerenciar Clientes</a></li>
+                <li><a href="/gerenciaProdutos">Gerenciar Produtos</a></li>
+                <li><a href="/gerenciaPedidos">Gerenciar Pedidos</a></li>
+                <li><a href="/historicoCompras">Histórico de Compras</a></li>
+                <li><a href="/relatorioVendas">Relatórios</a></li>
+                <li><a href="/logout" id="logout">Sair</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="container">
+            <header class="report-header">
+                <h1>RELATÓRIO DE VENDAS</h1>
+                <div class="report-filters">
+                    <div class="filter-group">
+                        <label for="data-inicio">Data Início:</label>
+                        <input type="date" id="data-inicio">
+                    </div>
+                    <div class="filter-group">
+                        <label for="data-fim">Data Fim:</label>
+                        <input type="date" id="data-fim">
+                    </div>
+                    <button id="btn-filtrar">FILTRAR</button>
+                </div>
+            </header>
+        </div>
+
+        <div class="report-summary">
+            <div class="summary-card">
+                <h3>Total Vendido</h3>
+                <p id="total-vendido">R$ 0,00</p>
+            </div>
+            <div class="summary-card">
+                <h3>Quantidade de Vendas</h3>
+                <p id="quantidade-vendas">0</p>
+            </div>
+            <div class="summary-card">
+                <h3>Valor Médio</h3>
+                <p id="ticket-medio">R$ 0,00</p>
+            </div>
+        </div>
+
+        <div class="report-table-container">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Nº Pedido</th>
+                        <th>Cliente</th>
+                        <th>Itens</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="vendas-body">
+                    <!-- Dados das vendas serão inseridos aqui -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="report-charts">
+            <div class="chart-container">
+                <h3>Produtos Mais Vendidos</h3>
+                <canvas id="chart-produtos"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <!-- Biblioteca Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dataInicio = document.getElementById('data-inicio');
+            const dataFim = document.getElementById('data-fim');
+            const btnFiltrar = document.getElementById('btn-filtrar');
+            const vendasBody = document.getElementById('vendas-body');
+            const totalVendido = document.getElementById('total-vendido');
+            const quantidadeVendas = document.getElementById('quantidade-vendas');
+            const ticketMedio = document.getElementById('ticket-medio');
+            let chartProdutos;
+
+            async function buscarRelatorio(inicio = '', fim = '') {
+                try {
+                    const url = `/api/relatorioVendas?inicio=${inicio}&fim=${fim}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        atualizarRelatorio(data);
+                        atualizarGraficos(data.produtos_mais_vendidos);
+                    } else {
+                        alert(data.erro || 'Erro ao buscar o relatório');
+                    }
+                } catch (error) {
+                    console.error('Erro ao buscar o relatório:', error);
+                    alert('Erro ao buscar o relatório');
+                }
+            }
+
+            function atualizarRelatorio(data) {
+                const { relatorio, resumo } = data;
+
+                vendasBody.innerHTML = '';
+                relatorio.forEach(venda => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${venda.data}</td>
+                        <td>${venda.pedido}</td>
+                        <td>${venda.cliente}</td>
+                        <td>${venda.itens}</td>
+                        <td>R$ ${venda.total.toFixed(2)}</td>
+                        <td><span class="status ${venda.status.toLowerCase()}">${venda.status}</span></td>
+                    `;
+                    vendasBody.appendChild(tr);
+                });
+
+                totalVendido.textContent = `R$ ${resumo.total_vendido.toFixed(2)}`;
+                quantidadeVendas.textContent = resumo.quantidade_vendas;
+                ticketMedio.textContent = `R$ ${resumo.ticket_medio.toFixed(2)}`;
+            }
+
+            function atualizarGraficos(produtosMaisVendidos) {
+                const labelsProdutos = produtosMaisVendidos.map(item => item[0]);
+                const dataProdutos = produtosMaisVendidos.map(item => item[1]);
+
+                if (chartProdutos) {
+                    chartProdutos.destroy();
+                }
+                const ctxProdutos = document.getElementById('chart-produtos').getContext('2d');
+                chartProdutos = new Chart(ctxProdutos, {
+                    type: 'bar',
+                    data: {
+                        labels: labelsProdutos,
+                        datasets: [{
+                            label: 'Produtos Mais Vendidos',
+                            data: dataProdutos,
+                            backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                            borderColor: 'rgba(153, 102, 255, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            }
+                        }
+                    }
+                });
+            }
+
+            btnFiltrar.addEventListener('click', function() {
+                const inicio = dataInicio.value;
+                const fim = dataFim.value;
+
+                if (inicio && fim && new Date(inicio) > new Date(fim)) {
+                    alert('Data de início não pode ser maior que data de fim');
+                    return;
+                }
+
+                buscarRelatorio(inicio, fim);
+            });
+
+            buscarRelatorio();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizar Produtos</title>
+    <link rel="stylesheet" href="static/css/visualizarProduto.css">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">Minha Loja</div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="/dashboardClient" class="nav-link active">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/novaCompra" class="nav-link">Nova Compra</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/historicoComprasClient" class="nav-link">Histórico de Compras</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/visualizarProdutos" class="nav-link">Visualizar Produtos</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/meuPerfil" class="nav-link">Meu Perfil</a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="header">
+                <h1 class="page-title">VISUALIZAR PRODUTOS</h1>
+            </div>
+
+            <div class="produtos-container">
+                <div class="produtos-actions">
+                    <div class="search-box">
+                        <input type="text" placeholder="Buscar produto..." class="search-input">
+                        <button class="search-btn">🔍</button>
+                    </div>
+                    <button class="add-produto-btn">+ Adicionar Produto</button>
+                </div>
+
+                <div class="produtos-table-container">
+                    <table class="produtos-table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Preço</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Produto A</td>
+                                <td>R$ 120,00</td>
+                                <td>
+                                    <button class="edit-btn">Editar</button>
+                                    <button class="delete-btn">Excluir</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Produto B</td>
+                                <td>R$ 75,00</td>
+                                <td>
+                                    <button class="edit-btn">Editar</button>
+                                    <button class="delete-btn">Excluir</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Produto C</td>
+                                <td>R$ 200,00</td>
+                                <td>
+                                    <button class="edit-btn">Editar</button>
+                                    <button class="delete-btn">Excluir</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Produto D</td>
+                                <td>R$ 50,00</td>
+                                <td>
+                                    <button class="edit-btn">Editar</button>
+                                    <button class="delete-btn">Excluir</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="paginacao">
+                    <button class="pagina-btn active">1</button>
+                    <button class="pagina-btn">2</button>
+                    <button class="pagina-btn">3</button>
+                    <span>...</span>
+                    <button class="pagina-btn">5</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dados de exemplo - substituir por chamada API real
+            const produtos = [
+                { id: 1, nome: 'Produto A', preco: 120.00 },
+                { id: 2, nome: 'Produto B', preco: 75.00 },
+                { id: 3, nome: 'Produto C', preco: 200.00 },
+                { id: 4, nome: 'Produto D', preco: 50.00 }
+            ];
+
+            // Elementos do DOM
+            const produtosTable = document.querySelector('.produtos-table tbody');
+            const searchInput = document.querySelector('.search-input');
+            const searchBtn = document.querySelector('.search-btn');
+            const addProdutoBtn = document.querySelector('.add-produto-btn');
+
+            // Função para formatar valor monetário
+            function formatarValor(valor) {
+                return 'R$ ' + valor.toFixed(2).replace('.', ',');
+            }
+
+            // Renderizar tabela de produtos
+            function renderizarProdutos(produtosFiltrados = produtos) {
+                produtosTable.innerHTML = '';
+                
+                produtosFiltrados.forEach(produto => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${produto.nome}</td>
+                        <td>${formatarValor(produto.preco)}</td>
+                        <td>
+                            <button class="edit-btn" data-id="${produto.id}">Editar</button>
+                            <button class="delete-btn" data-id="${produto.id}">Excluir</button>
+                        </td>
+                    `;
+                    produtosTable.appendChild(row);
+                });
+
+                // Adicionar eventos aos botões
+                document.querySelectorAll('.edit-btn').forEach(btn => {
+                    btn.addEventListener('click', editarProduto);
+                });
+
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', excluirProduto);
+                });
+            }
+
+            // Função para filtrar produtos
+            function filtrarProdutos() {
+                const termo = searchInput.value.toLowerCase();
+                const produtosFiltrados = produtos.filter(produto => 
+                    produto.nome.toLowerCase().includes(termo)
+                );
+                renderizarProdutos(produtosFiltrados);
+            }
+
+            // Função para editar produto
+            function editarProduto(e) {
+                const produtoId = parseInt(e.target.getAttribute('data-id'));
+                const produto = produtos.find(p => p.id === produtoId);
+                
+                // Aqui você pode implementar um modal ou redirecionar para edição
+                alert(`Editar produto: ${produto.nome}\nPreço: ${formatarValor(produto.preco)}`);
+            }
+
+            // Função para excluir produto
+            function excluirProduto(e) {
+                const produtoId = parseInt(e.target.getAttribute('data-id'));
+                const produto = produtos.find(p => p.id === produtoId);
+                
+                if (confirm(`Tem certeza que deseja excluir o produto "${produto.nome}"?`)) {
+                    // Aqui você faria a chamada API para excluir
+                    alert(`Produto "${produto.nome}" excluído com sucesso!`);
+                    // Atualizar lista após exclusão
+                    renderizarProdutos();
+                }
+            }
+
+            // Função para adicionar novo produto
+            function adicionarProduto() {
+                // Aqui você pode implementar um modal ou redirecionar para adição
+                alert('Abrir formulário para adicionar novo produto');
+            }
+
+            // Eventos
+            searchInput.addEventListener('input', filtrarProdutos);
+            searchBtn.addEventListener('click', filtrarProdutos);
+            addProdutoBtn.addEventListener('click', adicionarProduto);
+
+            // Inicializar
+            renderizarProdutos();
+        });
+    </script>
+</body>
+</html>

@@ -11,6 +11,8 @@ from logging.handlers import RotatingFileHandler
 from sqlalchemy import func
 from flask import render_template
 from flask import redirect, url_for
+from flask_cors import CORS
+from pytz import timezone
 
 # Importa o objeto `db` do arquivo extensions.py
 from Model.extensions import db
@@ -179,7 +181,26 @@ def get_orders():
 @app.route('/orders/<int:id>', methods=['GET'])
 def get_order(id):
     order = Pedido.query.get_or_404(id)
-    return order.to_dict(), 200
+    itens = ItemPedido.query.filter_by(pedido_id=order.id).all()
+
+    order_details = {
+        'id': order.id,
+        'usuario_id': order.usuario_id,
+        'status': order.status,
+        'valor_total': order.valor_total,
+        'data_criacao': order.data_criacao.strftime('%Y-%m-%d %H:%M:%S'),
+        'itens': [
+            {
+                'produto_id': item.produto_id,
+                'produto_nome': Produto.query.get(item.produto_id).nome,
+                'quantidade': item.quantidade,
+                'preco_unitario': item.preco_unitario
+            }
+            for item in itens
+        ]
+    }
+
+    return jsonify(order_details), 200
 
 # Cadastra um novo pedido
 @app.route('/orders', methods=['POST'])
@@ -187,7 +208,6 @@ def add_order():
     data = request.get_json()
     validate_fields(data, ['usuario_id', 'itens'])
 
-    # Ajuste o nome do atributo para o correto no modelo Pedido
     novo_pedido = Pedido(usuario_id=data['usuario_id'], data_criacao=datetime.now())
     db.session.add(novo_pedido)
     db.session.flush()  # Garante que o ID do pedido seja gerado
@@ -208,7 +228,10 @@ def add_order():
         )
         db.session.add(item_pedido)
 
+    # Calcula o valor total do pedido
+    novo_pedido.calcular_valor_total()
     db.session.commit()
+
     app.logger.info(f"Compra registrada para cliente ID {data['usuario_id']}")
     return jsonify({'mensagem': 'Compra registrada com sucesso', 'pedido_id': novo_pedido.id}), 201
 
@@ -246,6 +269,12 @@ def update_order(pedido_id):
         )
         db.session.add(novo_item)
 
+    # Recalcula o valor total do pedido
+    pedido.calcular_valor_total()
+    db.session.commit()
+
+    return jsonify({'mensagem': 'Pedido atualizado com sucesso'}), 200
+
 # Deleta um pedido existente
 @app.route('/orders/<int:id>', methods=['DELETE'])
 def delete_order(id):
@@ -268,6 +297,7 @@ def get_orders_by_client(client_id):
         itens_formatados = [
             {
                 'produto_id': item.produto_id,
+                'produto_nome': Produto.query.get(item.produto_id).nome,
                 'quantidade': item.quantidade,
                 'preco_unitario': item.preco_unitario
             }
@@ -276,47 +306,119 @@ def get_orders_by_client(client_id):
         pedidos_formatados.append({
             'pedido_id': pedido.id,
             'data_criacao': pedido.data_criacao.strftime('%Y-%m-%d %H:%M:%S'),
+            'valor_total': pedido.valor_total,
             'itens': itens_formatados
         })
         
     return jsonify({'pedidos': pedidos_formatados}), 200
 
 
+@app.route('/api/user-dashboard', methods=['GET'])
+def get_user_dashboard():
+    client_id = request.args.get('clientId', type=int)
+
+    if not client_id:
+        return jsonify({'error': 'clientId é obrigatório'}), 400
+
+    pedidos = Pedido.query.filter_by(usuario_id=client_id).all()
+
+    if not pedidos:
+        return jsonify({
+            'lastPurchase': None,
+            'totalSpent': 0.0,
+            'purchasesCount': 0
+        }), 200
+
+    total_spent = sum(pedido.valor_total for pedido in pedidos)
+    purchases_count = len(pedidos)
+    last_purchase_date = max(pedido.data_criacao for pedido in pedidos)
+
+    local_tz = timezone('America/Sao_Paulo')
+    last_purchase_date_local = last_purchase_date.astimezone(local_tz)
+
+    return jsonify({
+        'lastPurchase': last_purchase_date_local.strftime('%Y-%m-%d %H:%M:%S'),
+        'totalSpent': total_spent,
+        'purchasesCount': purchases_count
+    }), 200
+    
+    
 # ================== RELATÓRIO DE VENDAS POR PRODUTO COM FILTRO DE DATA =====================
 
-@app.route('/reports/sales-by-product', methods=['GET'])
-def report_sales_by_product():
-    from sqlalchemy import func
+@app.route('/api/relatorioVendas', methods=['GET'])
+def relatorio_vendas():
+    app.logger.info('Rota /api/relatorioVendas chamada.')
     data_inicio = request.args.get('inicio')
     data_fim = request.args.get('fim')
+    app.logger.info(f"Parâmetros recebidos - Início: {data_inicio}, Fim: {data_fim}")
 
+    # Query para buscar os dados do relatório
     query = db.session.query(
-        Produto.id,
-        Produto.nome,
-        func.sum(ItemPedido.quantidade).label('total_vendido')
-    ).join(ItemPedido, Produto.id == ItemPedido.produto_id) \
-    .join(Pedido, Pedido.id == ItemPedido.pedido_id)
+        Pedido.data_criacao,
+        Pedido.id.label('pedido_id'),
+        Usuario.nome.label('cliente'),
+        Produto.nome.label('produto'),
+        func.sum(ItemPedido.quantidade).label('itens'),
+        func.sum(ItemPedido.quantidade * ItemPedido.preco_unitario).label('total'),
+        Pedido.status
+    ).join(Usuario, Pedido.usuario_id == Usuario.id) \
+     .join(ItemPedido, Pedido.id == ItemPedido.pedido_id) \
+     .join(Produto, Produto.id == ItemPedido.produto_id)
 
+    # Filtro por data, se fornecido
     if data_inicio and data_fim:
         try:
             data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d')
             data_fim = datetime.strptime(data_fim, '%Y-%m-%d')
             data_fim = data_fim.replace(hour=23, minute=59, second=59)
-            app.logger.info(f"Data início: {data_inicio}, Data fim: {data_fim}")
             query = query.filter(Pedido.data_criacao >= data_inicio, Pedido.data_criacao <= data_fim)
         except ValueError:
+            app.logger.error('Formato de data inválido.')
             return jsonify({'erro': 'Formato de data inválido. Use AAAA-MM-DD'}), 400
 
-    resultados = query.group_by(Produto.id).all()
-    app.logger.info(f"Resultados da query: {resultados}")
+    query = query.group_by(Pedido.id, Produto.id).all()
+    app.logger.info(f"Resultados da query: {query}")
 
+    # Formata os dados do relatório
     relatorio = [
-        {'produto_id': pid, 'produto_nome': nome, 'quantidade_vendida': int(total)}
-        for pid, nome, total in resultados
+        {
+            'data': pedido.data_criacao.strftime('%Y-%m-%d'),
+            'pedido': pedido.pedido_id,
+            'cliente': pedido.cliente,
+            'produto': pedido.produto,
+            'itens': int(pedido.itens),
+            'total': float(pedido.total),
+            'status': pedido.status
+        }
+        for pedido in query
     ]
 
-    return jsonify({'relatorio_vendas': relatorio}), 200
+    # Calcula os produtos mais vendidos
+    produtos_agrupados = {}
+    for item in relatorio:
+        if item['produto'] not in produtos_agrupados:
+            produtos_agrupados[item['produto']] = 0
+        produtos_agrupados[item['produto']] += item['itens']
 
+    # Ordena os produtos por quantidade vendida e pega os 5 mais vendidos
+    produtos_mais_vendidos = sorted(produtos_agrupados.items(), key=lambda x: x[1], reverse=True)[:5]
+
+    # Calcula o resumo
+    total_vendido = sum(item['total'] for item in relatorio)
+    quantidade_vendas = len(relatorio)
+    ticket_medio = total_vendido / quantidade_vendas if quantidade_vendas > 0 else 0
+
+    app.logger.info(f"Resumo - Total Vendido: {total_vendido}, Quantidade de Vendas: {quantidade_vendas}, Ticket Médio: {ticket_medio}")
+
+    return jsonify({
+        'relatorio': relatorio,
+        'resumo': {
+            'total_vendido': total_vendido,
+            'quantidade_vendas': quantidade_vendas,
+            'ticket_medio': ticket_medio
+        },
+        'produtos_mais_vendidos': produtos_mais_vendidos
+    }), 200
 
 # ================== AUTENTICAÇÃO =====================
 '''
@@ -333,15 +435,15 @@ def login():
 
     user = Usuario.query.filter_by(email=data['email']).first()
     if not user or not check_password_hash(user.senha, data['senha']):
-        abort(401, description='Invalid credentials')
+        abort(401, description='Credenciais inválidas')
 
+    # Retorna o ID do usuário junto com o token e o tipo de usuário
     token = jwt.encode({
         'user_id': user.id,
         'exp': datetime.utcnow() + timedelta(hours=1)
     }, 'secret_key', algorithm='HS256')
 
-    # Redirecionar para o dashboard após o login
-    return redirect(url_for('dashboard'))
+    return jsonify({'token': token, 'clientId': user.id, 'tipo': user.tipo}), 200
 
 
 # Decorador para proteger rotas
@@ -394,27 +496,53 @@ def render_cadastro():
 def render_dashboard():
     return render_template('dashboard.html')
 
-@app.route('/gerencia-clientes', methods=['GET'])
+@app.route('/gerenciaClientes', methods=['GET'])
 def render_gerencia_clientes():
     return render_template('gerencia_clientes.html')
 
-@app.route('/gerencia-pedidos', methods=['GET'])
+@app.route('/gerenciaPedidos', methods=['GET'])
 def render_gerencia_pedidos():
     return render_template('gerencia_pedidos.html')
 
-@app.route('/gerencia-produtos', methods=['GET'])
+@app.route('/gerenciaProdutos', methods=['GET'])
 def render_gerencia_produtos():
     return render_template('gerencia_produtos.html')
 
-@app.route('/histo rico-compras', methods=['GET'])
+@app.route('/historicoCompras', methods=['GET'])
 def render_historico_compras():
     return render_template('historico_compra_admin.html')
 
-@app.route('/gerencia-usuarios', methods=['GET'])
+@app.route('/gerenciaUsuarios', methods=['GET'])
 def render_gerencia_usuarios():
     return render_template('gerencia_usuarios.html')
 
+@app.route('/dashboardClient', methods=['GET'])
+def render_dashboard_client():
+    return render_template('dashboardClient.html')
+
+@app.route('/meuPerfil', methods=['GET'])
+def render_meu_perfil():
+    return render_template('meuPerfil.html')
+
+@app.route('/novaCompra', methods=['GET'])
+def render_nova_compra():
+    return render_template('novaCompra.html')
+
+@app.route('/historicoComprasClient', methods=['GET'])
+def render_historico_compras_cliente():
+    return render_template('historicoCompra.html')
+
+@app.route('/visualizarProdutos', methods=['GET'])
+def render_visualizar_produtos():
+    return render_template('visualizarProduto.html')
+
+@app.route('/relatorioVendas', methods=['GET'])
+def render_relatorio_vendas():
+    return render_template('relatorioVendas.html')
+
 # ================== EXECUÇÃO DO APP =====================
 if __name__ == '__main__':
+    # Habilita o CORS para todas as rotas
+    CORS(app)
     app.run(debug=True)
     

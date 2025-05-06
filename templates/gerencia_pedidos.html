@@ -1,96 +1,168 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gerenciar Pedidos - Sistema de Vendas</title>
-    <link rel="stylesheet" href="/static/css/styleGerenciaPedidos.css">
-</head>
-<body>
+    <link rel="stylesheet" href="/static/css/styleGerenciaPedidos.css" />
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
+  </head>
+  <body>
     <header>
-        <h1>Gerenciar Pedidos</h1>
-        <nav>
-            <ul>
-                <li><a href="/dashboard">Dashboard</a></li>
-                <li><a href="/gerencia-clientes">Gerenciar Clientes</a></li>
-                <li><a href="/gerencia-produtos">Gerenciar Produtos</a></li>
-                <li><a href="/historico-compras">Histórico de Compras</a></li>
-                <li><a href="/logout" id="logout">Sair</a></li>
-            </ul>
-        </nav>
+      <h1>Gerenciar Pedidos</h1>
+      <nav>
+        <ul>
+          <li><a href="/gerenciaClientes">Gerenciar Clientes</a></li>
+          <li><a href="/gerenciaProdutos">Gerenciar Produtos</a></li>
+          <li><a href="/gerenciaPedidos">Gerenciar Pedidos</a></li>
+          <li><a href="/historicoCompras">Histórico de Compras</a></li>
+          <li><a href="/relatorioVendas">Relatórios</a></li>
+          <li><a href="/logout" id="logout">Sair</a></li>
+        </ul>
+      </nav>
     </header>
     <main>
-        <section class="order-list">
-            <h2>Lista de Pedidos</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Cliente</th>
-                        <th>Status</th>
-                        <th>Valor Total</th>
-                        <th>Data</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="orderTableBody">
-                    <!-- Os dados serão preenchidos dinamicamente -->
-                </tbody>
-            </table>
-        </section>
+      <section class="order-list">
+        <h2>Lista de Pedidos</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Cliente</th>
+              <th>Status</th>
+              <th>Valor Total</th>
+              <th>Data</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="orderTableBody">
+            <!-- Os dados serão preenchidos dinamicamente -->
+          </tbody>
+        </table>
+      </section>
     </main>
-    <script>
-        // Fetch and display orders
-        async function fetchOrders() {
-            const response = await fetch('/orders');
-            const data = await response.json();
-            const tableBody = document.getElementById('orderTableBody');
-            tableBody.innerHTML = '';
 
-            data.orders.forEach(order => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
+    <div id="orderModal" class="modal hidden">
+        <div class="modal-content">
+          <span class="close-button" onclick="closeModal()">&times;</span>
+          <h2>Detalhes do Pedido</h2>
+          <div id="orderDetails">
+            <!-- Os detalhes do pedido serão preenchidos dinamicamente -->
+          </div>
+        </div>
+      </div>
+    <script>
+      // Fetch and display orders
+      async function fetchOrders() {
+        const response = await fetch("/orders");
+        const data = await response.json();
+        const tableBody = document.getElementById("orderTableBody");
+        tableBody.innerHTML = "";
+
+        data.orders.forEach((order) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
                     <td>${order.id}</td>
                     <td>${order.usuario_id}</td>
                     <td>${order.status}</td>
                     <td>R$ ${order.valor_total.toFixed(2)}</td>
                     <td>${order.data_criacao}</td>
                     <td>
-                        <button onclick="viewOrder(${order.id})">Visualizar</button>
-                        <button onclick="deleteOrder(${order.id})">Excluir</button>
+                        <button onclick="viewOrder(${
+                          order.id
+                        })">Visualizar</button>
+                        <button onclick="deleteOrder(${
+                          order.id
+                        })">Excluir</button>
                     </td>
                 `;
-                tableBody.appendChild(row);
-            });
-        }
+          tableBody.appendChild(row);
+        });
+      }
 
-        // Delete an order
-        async function deleteOrder(orderId) {
-            if (confirm('Tem certeza que deseja excluir este pedido?')) {
-                const response = await fetch(`/orders/${orderId}`, { method: 'DELETE' });
-                if (response.ok) {
-                    alert('Pedido excluído com sucesso!');
-                    fetchOrders();
-                } else {
-                    alert('Erro ao excluir pedido.');
-                }
-            }
+      // Delete an order
+      async function deleteOrder(orderId) {
+        if (confirm("Tem certeza que deseja excluir este pedido?")) {
+          const response = await fetch(`/orders/${orderId}`, {
+            method: "DELETE",
+          });
+          if (response.ok) {
+            alert("Pedido excluído com sucesso!");
+            fetchOrders();
+          } else {
+            alert("Erro ao excluir pedido.");
+          }
         }
+      }
 
-        // View order details (redirect to a detailed page or modal)
-        function viewOrder(orderId) {
-            window.location.href = `/orders/${orderId}`;
-        }
+      // View order details (redirect to a detailed page or modal)
+      function viewOrder(orderId) {
+        window.location.href = `/orders/${orderId}`;
+      }
 
-        // Logout functionality
-        document.getElementById('logout').addEventListener('click', async function(e) {
-            e.preventDefault();
-            await fetch('/logout', { method: 'POST' });
-            window.location.href = '/login';
+      // Logout functionality
+      document
+        .getElementById("logout")
+        .addEventListener("click", async function (e) {
+          e.preventDefault();
+          await fetch("/logout", { method: "POST" });
+          window.location.href = "/login";
         });
 
-        // Fetch orders on page load
-        fetchOrders();
+      // Exibir os detalhes do pedido em um modal
+      async function viewOrder(orderId) {
+        try {
+          const response = await fetch(`/orders/${orderId}`);
+          if (!response.ok) {
+            throw new Error("Erro ao buscar os detalhes do pedido");
+          }
+
+          const order = await response.json();
+          const orderDetails = document.getElementById("orderDetails");
+          orderDetails.innerHTML = `
+            <p><strong>ID do Pedido:</strong> ${order.id}</p>
+            <p><strong>Cliente:</strong> ${order.usuario_id}</p>
+            <p><strong>Status:</strong> ${order.status}</p>
+            <p><strong>Valor Total:</strong> R$ ${order.valor_total.toFixed(
+              2
+            )}</p>
+            <p><strong>Data:</strong> ${order.data_criacao}</p>
+            <h3>Itens do Pedido:</h3>
+            <ul>
+                ${order.itens
+                  .map(
+                    (item) => `
+                    <li>
+                        <strong>Produto:</strong> ${item.produto_nome} |
+                        <strong>Quantidade:</strong> ${item.quantidade} |
+                        <strong>Preço Unitário:</strong> R$ ${item.preco_unitario.toFixed(
+                          2
+                        )}
+                    </li>
+                `
+                  )
+                  .join("")}
+            </ul>
+        `;
+
+          // Exibir o modal
+          const modal = document.getElementById("orderModal");
+          modal.classList.remove("hidden");
+          modal.style.display = "block";
+        } catch (error) {
+          console.error("Erro ao carregar os detalhes do pedido:", error);
+          alert("Erro ao carregar os detalhes do pedido.");
+        }
+      }
+
+      // Fechar o modal
+      function closeModal() {
+        const modal = document.getElementById("orderModal");
+        modal.style.display = "none";
+      }
+
+      // Fetch orders on page load
+      fetchOrders();
     </script>
-</body>
+  </body>
 </html>

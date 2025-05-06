@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro - Sistema de Vendas</title>
     <link rel="stylesheet" href="/static/css/styleCadastro.css">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
 </head>
 <body>
     <div class="container">
@@ -21,6 +22,7 @@
             
             <label for="tipo">Tipo</label>
             <select id="tipo" name="tipo" required>
+                <option value="">Selecione um tipo</option>
                 <option value="cliente">Cliente</option>
                 <option value="admin">Administrador</option>
             </select>
@@ -39,18 +41,33 @@
             const erroEl = document.getElementById('erro');
             erroEl.textContent = "";
 
-            const response = await fetch("http://localhost:5000/clients", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ nome, email, senha, tipo })
-            });
+            // Validação básica no frontend
+            if (!nome || !email || !senha || !tipo) {
+                erroEl.textContent = "Todos os campos são obrigatórios";
+                return;
+            }
 
-            const data = await response.json();
-            if (!response.ok) {
-                erroEl.textContent = data.erro || "Falha no cadastro.";
-            } else {
-                alert("Usuário cadastrado com sucesso!");
-                window.location.href = "/login";
+            try {
+                const response = await fetch("/clients", {  // Usando a rota /clients que já existe
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({ nome, email, senha, tipo })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    erroEl.textContent = data.erro || "Falha no cadastro. Tente novamente.";
+                } else {
+                    alert("Usuário cadastrado com sucesso!");
+                    window.location.href = "/login";
+                }
+            } catch (error) {
+                console.error("Erro:", error);
+                erroEl.textContent = "Erro ao conectar com o servidor";
             }
         });
     </script>

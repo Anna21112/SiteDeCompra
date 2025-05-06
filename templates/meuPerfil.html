@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Perfil</title>
+    <link rel="stylesheet" href="static/css/meuPerfil.css">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">Minha Loja</div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="/dashboardClient" class="nav-link active">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/novaCompra" class="nav-link">Nova Compra</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/historicoComprasClient" class="nav-link">Histórico de Compras</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/visualizarProdutos" class="nav-link">Visualizar Produtos</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/meuPerfil" class="nav-link">Meu Perfil</a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="header">
+                <h1 class="page-title">MEU PERFIL</h1>
+                <div class="user-info">
+                    <div class="user-avatar">A</div>
+                    <span>Arthur</span>
+                </div>
+            </div>
+
+            <div class="profile-container">
+                <div class="profile-header">
+                    <div class="profile-avatar">A</div>
+                    <h2 class="profile-name">Arthur</h2>
+                </div>
+
+                <div class="profile-info">
+                    <div class="info-group">
+                        <label>Nome</label>
+                        <div class="info-value" id="nome-value">Arthur</div>
+                    </div>
+                    <div class="info-group">
+                        <label>Email</label>
+                        <div class="info-value" id="email-value">arthur@example.com</div>
+                    </div>
+                    <div class="info-group">
+                        <label>Data de Cadastro</label>
+                        <div class="info-value">15 de março de 2024</div>
+                    </div>
+                </div>
+
+                <div class="profile-actions">
+                    <label class="edit-toggle">
+                        <input type="checkbox" id="edit-mode">
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-label">Editar</span>
+                    </label>
+                    <button class="save-btn" id="save-btn" disabled>Salvar Alterações</button>
+                </div>
+
+                <form class="edit-form hidden" id="edit-form">
+                    <div class="form-group">
+                        <label for="nome">Nome</label>
+                        <input type="text" id="nome" name="nome" value="Arthur">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" value="arthur@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="senha">Nova Senha (opcional)</label>
+                        <input type="password" id="senha" name="senha" placeholder="Deixe em branco para manter a atual">
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Elementos do DOM
+            const nomeValue = document.getElementById('nome-value');
+            const emailValue = document.getElementById('email-value');
+            const profileName = document.querySelector('.profile-name');
+            const profileAvatar = document.querySelector('.profile-avatar');
+            const userAvatar = document.querySelector('.user-avatar');
+            const userInfoName = document.querySelector('.user-info span');
+            const editToggle = document.getElementById('edit-mode');
+            const saveBtn = document.getElementById('save-btn');
+            const editForm = document.getElementById('edit-form');
+            const nomeInput = document.getElementById('nome');
+            const emailInput = document.getElementById('email');
+            const senhaInput = document.getElementById('senha');
+        
+            // Função para buscar os dados do perfil
+            async function carregarPerfil() {
+                const clientId = localStorage.getItem('clientId'); // Obtém o clientId do localStorage
+                if (!clientId) {
+                    alert('Erro: Cliente não identificado.');
+                    return;
+                }
+        
+                try {
+                    const response = await fetch(`/clients/${clientId}`);
+                    if (!response.ok) {
+                        throw new Error('Erro ao buscar os dados do perfil');
+                    }
+                    const data = await response.json();
+        
+                    // Atualizar os valores no DOM
+                    nomeValue.textContent = data.nome;
+                    emailValue.textContent = data.email;
+                    profileName.textContent = data.nome;
+                    profileAvatar.textContent = data.nome.charAt(0);
+                    userAvatar.textContent = data.nome.charAt(0);
+                    userInfoName.textContent = data.nome;
+        
+                    // Atualizar os valores no formulário de edição
+                    nomeInput.value = data.nome;
+                    emailInput.value = data.email;
+                } catch (error) {
+                    console.error('Erro:', error);
+                    alert('Erro ao carregar os dados do perfil. Tente novamente mais tarde.');
+                }
+            }
+        
+            // Função para habilitar/desabilitar o modo de edição
+            editToggle.addEventListener('change', function () {
+                const isEditing = editToggle.checked;
+                editForm.classList.toggle('hidden', !isEditing);
+                saveBtn.disabled = !isEditing;
+            });
+        
+            // Função para salvar as alterações
+            async function salvarAlteracoes() {
+                const clientId = localStorage.getItem('clientId'); // Obtém o clientId do localStorage
+                if (!clientId) {
+                    alert('Erro: Cliente não identificado.');
+                    return;
+                }
+        
+                const dadosAtualizados = {
+                    nome: nomeInput.value,
+                    email: emailInput.value,
+                };
+        
+                // Adiciona a senha apenas se o campo não estiver vazio
+                if (senhaInput.value) {
+                    dadosAtualizados.senha = senhaInput.value;
+                }
+        
+                try {
+                    const response = await fetch(`/clients/${clientId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(dadosAtualizados),
+                    });
+        
+                    if (!response.ok) {
+                        throw new Error('Erro ao salvar as alterações');
+                    }
+        
+                    alert('Alterações salvas com sucesso!');
+                    carregarPerfil(); // Recarrega os dados atualizados
+                    editToggle.checked = false; // Desativa o modo de edição
+                    editForm.classList.add('hidden');
+                    saveBtn.disabled = true;
+                } catch (error) {
+                    console.error('Erro:', error);
+                    alert('Erro ao salvar as alterações. Tente novamente mais tarde.');
+                }
+            }
+        
+            // Evento para salvar as alterações
+            saveBtn.addEventListener('click', salvarAlteracoes);
+        
+            // Inicializar
+            carregarPerfil();
+        });
+    </script>
+</body>
+</html>

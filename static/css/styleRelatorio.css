@@ -1,0 +1,250 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #ffffff; /* Fundo branco */
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 20px auto; /* Espaçamento vertical entre as divs */
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+    padding: 25px;
+}
+
+.report-header {
+    margin-bottom: 30px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 20px;
+    background-color: transparent; /* Remove o fundo cinza */
+}
+
+.report-header h1 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 28px;
+}
+
+.report-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+    justify-content: center;
+    background-color: transparent; /* Remove o fundo cinza */
+    padding: 20px; /* Adiciona espaçamento interno */
+    border-radius: 8px; /* Bordas arredondadas */
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-group label {
+    font-size: 14px;
+    color: #7f8c8d;
+    margin-bottom: 5px;
+}
+
+.filter-group input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.report-filters button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.report-filters button:hover {
+    background-color: #2980b9;
+}
+
+#btn-exportar {
+    background-color: #27ae60;
+}
+
+#btn-exportar:hover {
+    background-color: #219653;
+}
+
+.report-summary {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    gap: 30px; /* Aumenta o espaçamento entre os cards */
+}
+
+.summary-card {
+    flex: 1;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px; /* Espaçamento inferior entre os cards */
+}
+
+.summary-card h3 {
+    margin-top: 0;
+    color: #7f8c8d;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.summary-card p {
+    margin-bottom: 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.report-table-container {
+    margin-bottom: 40px;
+    padding: 20px; /* Adiciona espaçamento interno */
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    background-color: white;
+}
+
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.report-table th {
+    background-color: #3498db;
+    color: white;
+    padding: 12px 15px;
+    text-align: left;
+}
+
+.report-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.report-table tr:hover {
+    background-color: #f5f7fa;
+}
+
+.status {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.status.concluído {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status.pendente {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.report-charts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px; /* Espaçamento entre os gráficos */
+    margin-top: 40px;
+}
+
+.chart-container {
+    flex: 1;
+    min-width: 300px;
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px; /* Espaçamento inferior entre os gráficos */
+}
+
+.chart-container h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #2c3e50;
+    font-size: 18px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .report-summary {
+        flex-direction: column;
+    }
+    
+    .report-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filter-group {
+        width: 100%;
+    }
+}
+
+/* Navbar */
+header {
+    background-color: #2c3e50; /* Fundo azul escuro */
+    color: white;
+    padding: 1rem 2rem;
+    text-align: center; /* Centraliza o título */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+    font-size: 2rem; /* Tamanho maior para o título */
+    margin-bottom: 1rem;
+    font-weight: bold;
+    color: white;
+}
+
+nav ul {
+    display: flex;
+    justify-content: center; /* Centraliza os links */
+    gap: 2rem; /* Espaçamento entre os links */
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+nav a {
+    color: white; /* Texto branco */
+    text-decoration: none; /* Remove o sublinhado */
+    font-weight: 500; /* Peso médio para o texto */
+    font-size: 1rem; /* Tamanho do texto */
+    padding: 0.5rem 1rem; /* Espaçamento interno */
+    border-radius: 4px; /* Bordas arredondadas */
+    transition: background-color 0.3s ease;
+}
+
+nav a:hover {
+    background-color: rgba(255, 255, 255, 0.2); /* Fundo branco translúcido no hover */
+}
+
+#logout {
+    color: #e74c3c; /* Destaque em vermelho para o botão de logout */
+    font-weight: bold;
+}
+
+#logout:hover {
+    background-color: rgba(231, 76, 60, 0.2); /* Fundo vermelho translúcido no hover */
+    color: white;
+}

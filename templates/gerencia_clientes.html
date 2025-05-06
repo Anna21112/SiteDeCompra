@@ -5,16 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Clientes - Sistema de Vendas</title>
     <link rel="stylesheet" href="/static/css/styleGerenciaClientes.css">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
 </head>
 <body>
     <header>
         <h1>Gerenciar Clientes</h1>
         <nav>
             <ul>
-                <li><a href="/dashboard">Dashboard</a></li>
-                <li><a href="/gerencia-produtos">Gerenciar Produtos</a></li>
-                <li><a href="/gerencia-pedidos">Gerenciar Pedidos</a></li>
-                <li><a href="/historico-compras">Histórico de Compras</a></li>
+                <li><a href="/gerenciaClientes">Gerenciar Clientes</a></li>
+                <li><a href="/gerenciaProdutos">Gerenciar Produtos</a></li>
+                <li><a href="/gerenciaPedidos">Gerenciar Pedidos</a></li>
+                <li><a href="/historicoCompras">Histórico de Compras</a></li>
+                <li><a href="/relatorioVendas">Relatórios</a></li>
                 <li><a href="/logout" id="logout">Sair</a></li>
             </ul>
         </nav>
@@ -39,29 +41,42 @@
         </section>
     </main>
     <script>
-        // Fetch and display clients
         async function fetchClients() {
-            const response = await fetch('/clients');
-            const data = await response.json();
-            const tableBody = document.getElementById('clientTableBody');
-            tableBody.innerHTML = '';
-
-            data.clients.forEach(client => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${client.id}</td>
-                    <td>${client.nome}</td>
-                    <td>${client.email}</td>
-                    <td>${client.tipo}</td>
-                    <td>
-                        <button onclick="editClient(${client.id})">Editar</button>
-                        <button onclick="deleteClient(${client.id})">Excluir</button>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
+            try {
+                const response = await fetch('/clients');
+                if (!response.ok) {
+                    throw new Error('Erro ao buscar clientes');
+                }
+    
+                const data = await response.json();
+                console.log('Dados recebidos da API:', data);
+    
+                const tableBody = document.getElementById('clientTableBody');
+                tableBody.innerHTML = '';
+    
+                data.clients.forEach(client => {
+                    console.log('Processando cliente:', client);
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${client.id}</td>
+                        <td>${client.nome}</td>
+                        <td>${client.email}</td>
+                        <td>${client.tipo}</td>
+                        <td>
+                            <button onclick="editClient(${client.id}, this)">Editar</button>
+                            <button onclick="deleteClient(${client.id})">Excluir</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar clientes:', error);
+            }
         }
-
+    
+        // Chama a função para carregar os clientes ao carregar a página
+        document.addEventListener('DOMContentLoaded', fetchClients);
+    
         // Delete a client
         async function deleteClient(clientId) {
             if (confirm('Tem certeza que deseja excluir este cliente?')) {
@@ -74,21 +89,73 @@
                 }
             }
         }
-
-        // Edit client (redirect to a form or modal)
-        function editClient(clientId) {
-            window.location.href = `/cadastro?edit=${clientId}`;
+    
+        // Edit client (inline editing)
+        async function editClient(clientId, button) {
+            const existingForm = document.querySelector('.edit-form');
+            if (existingForm) {
+                existingForm.remove();
+            }
+    
+            const response = await fetch(`/clients/${clientId}`);
+            if (!response.ok) {
+                alert('Erro ao carregar os dados do cliente.');
+                return;
+            }
+            const client = await response.json();
+    
+            const formRow = document.createElement('tr');
+            formRow.classList.add('edit-form');
+            formRow.innerHTML = `
+                <td colspan="5">
+                    <form id="editForm-${clientId}">
+                        <label for="nome-${clientId}">Nome:</label>
+                        <input type="text" id="nome-${clientId}" value="${client.nome}">
+                        <label for="email-${clientId}">E-mail:</label>
+                        <input type="email" id="email-${clientId}" value="${client.email}">
+                        <label for="tipo-${clientId}">Tipo:</label>
+                        <select id="tipo-${clientId}">
+                            <option value="admin" ${client.tipo === 'admin' ? 'selected' : ''}>Admin</option>
+                            <option value="cliente" ${client.tipo === 'cliente' ? 'selected' : ''}>Cliente</option>
+                        </select>
+                        <button type="button" onclick="saveClient(${clientId})">Salvar</button>
+                        <button type="button" onclick="cancelEdit()">Cancelar</button>
+                    </form>
+                </td>
+            `;
+    
+            button.closest('tr').after(formRow);
         }
-
-        // Logout functionality
-        document.getElementById('logout').addEventListener('click', async function(e) {
-            e.preventDefault();
-            await fetch('/logout', { method: 'POST' });
-            window.location.href = '/login';
-        });
-
-        // Fetch clients on page load
-        fetchClients();
+    
+        // Salvar as alterações do cliente
+        async function saveClient(clientId) {
+            const nome = document.getElementById(`nome-${clientId}`).value;
+            const email = document.getElementById(`email-${clientId}`).value;
+            const tipo = document.getElementById(`tipo-${clientId}`).value;
+    
+            const response = await fetch(`/clients/${clientId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ nome, email, tipo }),
+            });
+    
+            if (response.ok) {
+                alert('Cliente atualizado com sucesso!');
+                fetchClients();
+            } else {
+                alert('Erro ao atualizar o cliente.');
+            }
+        }
+    
+        // Cancelar a edição
+        function cancelEdit() {
+            const existingForm = document.querySelector('.edit-form');
+            if (existingForm) {
+                existingForm.remove();
+            }
+        }
     </script>
 </body>
 </html>

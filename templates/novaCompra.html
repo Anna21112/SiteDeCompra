@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Compra</title>
+    <link rel="stylesheet" href="static/css/novaCompra.css">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">Minha Loja</div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="/dashboardClient" class="nav-link active">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/novaCompra" class="nav-link">Nova Compra</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/historicoComprasClient" class="nav-link">Histórico de Compras</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/visualizarProdutos" class="nav-link">Visualizar Produtos</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/meuPerfil" class="nav-link">Meu Perfil</a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="header">
+                <h1 class="page-title">NOVA COMPRA</h1>
+            </div>
+
+            <div class="compra-container">
+                <div class="compra-section">
+                    <h2 class="section-title">Selecionar Produto</h2>
+                    <div class="search-box">
+                        <input type="text" placeholder="Buscar produto..." class="search-input">
+                    </div>
+                    <div class="product-list">
+                        <div class="product-item">
+                            <span>Produto A</span>
+                            <button class="add-btn">+ Adicionar</button>
+                        </div>
+                        <div class="product-item">
+                            <span>Produto B</span>
+                            <button class="add-btn">+ Adicionar</button>
+                        </div>
+                        <div class="product-item">
+                            <span>Produto C</span>
+                            <button class="add-btn">+ Adicionar</button>
+                        </div>
+                        <div class="product-item">
+                            <span>Produto D</span>
+                            <button class="add-btn">+ Adicionar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="compra-section">
+                    <h2 class="section-title">Carrinho</h2>
+                    <div class="cart-items">
+                        <div class="cart-item">
+                            <span>Adicione seu produto...</span>
+                            <span class="quantity">2</span>
+                            <button class="remove-btn">×</button>
+                        </div>
+                        <div class="cart-item">
+                            <span>Adicione seu produto...</span>
+                            <span class="quantity">1</span>
+                            <button class="remove-btn">×</button>
+                        </div>
+                    </div>
+                    <div class="cart-total">
+                        <span>Total: R$ 0,00</span>
+                    </div>
+                    <button class="finalize-btn">Finalizar Compra</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Variáveis para armazenar os produtos e carrinho
+            let cart = [];
+        
+            // Elementos do DOM
+            const productList = document.querySelector('.product-list');
+            const cartItems = document.querySelector('.cart-items');
+            const cartTotal = document.querySelector('.cart-total span');
+            const searchInput = document.querySelector('.search-input');
+            const finalizeBtn = document.querySelector('.finalize-btn');
+        
+            // Função para buscar produtos do backend
+            async function fetchProducts() {
+                try {
+                    const response = await fetch('/products');
+                    if (!response.ok) {
+                        throw new Error('Erro ao buscar produtos');
+                    }
+                    const data = await response.json();
+                    renderProducts(data.products);
+                } catch (error) {
+                    console.error('Erro:', error);
+                    alert('Erro ao carregar produtos. Tente novamente mais tarde.');
+                }
+            }
+        
+            // Renderizar lista de produtos
+            function renderProducts(products, filter = '') {
+                productList.innerHTML = '';
+                const filteredProducts = products.filter(product =>
+                    product.nome.toLowerCase().includes(filter.toLowerCase())
+                );
+        
+                filteredProducts.forEach(product => {
+                    const productItem = document.createElement('div');
+                    productItem.className = 'product-item';
+                    productItem.innerHTML = `
+                        <span>${product.nome} - R$ ${product.preco.toFixed(2).replace('.', ',')}</span>
+                        <button class="add-btn" data-id="${product.id}" data-name="${product.nome}" data-price="${product.preco}">+ Adicionar</button>
+                    `;
+                    productList.appendChild(productItem);
+                });
+        
+                // Adicionar eventos aos botões
+                document.querySelectorAll('.add-btn').forEach(btn => {
+                    btn.addEventListener('click', addToCart);
+                });
+            }
+        
+            // Adicionar produto ao carrinho
+            function addToCart(e) {
+                const productId = parseInt(e.target.getAttribute('data-id'));
+                const productName = e.target.getAttribute('data-name');
+                const productPrice = parseFloat(e.target.getAttribute('data-price'));
+        
+                const existingItem = cart.find(item => item.id === productId);
+                if (existingItem) {
+                    existingItem.quantity++;
+                } else {
+                    cart.push({
+                        id: productId,
+                        name: productName,
+                        price: productPrice,
+                        quantity: 1
+                    });
+                }
+        
+                renderCart();
+            }
+        
+            // Remover produto do carrinho
+            function removeFromCart(e) {
+                const productId = parseInt(e.target.getAttribute('data-id'));
+                cart = cart.filter(item => item.id !== productId);
+                renderCart();
+            }
+        
+            // Renderizar carrinho
+            function renderCart() {
+                cartItems.innerHTML = '';
+                let total = 0;
+        
+                cart.forEach(item => {
+                    const cartItem = document.createElement('div');
+                    cartItem.className = 'cart-item';
+                    cartItem.innerHTML = `
+                        <span>${item.name}</span>
+                        <span class="quantity">${item.quantity}</span>
+                        <button class="remove-btn" data-id="${item.id}">×</button>
+                    `;
+                    cartItems.appendChild(cartItem);
+                    total += item.price * item.quantity;
+                });
+        
+                // Adicionar eventos aos botões de remover
+                document.querySelectorAll('.remove-btn').forEach(btn => {
+                    btn.addEventListener('click', removeFromCart);
+                });
+        
+                // Atualizar total
+                cartTotal.textContent = `Total: R$ ${total.toFixed(2).replace('.', ',')}`;
+            }
+        
+            // Finalizar compra
+            async function finalizePurchase() {
+                if (cart.length === 0) {
+                    alert('Adicione produtos ao carrinho antes de finalizar!');
+                    return;
+                }
+        
+                const clientId = localStorage.getItem('clientId'); // Obtém o clientId do localStorage
+                if (!clientId) {
+                    alert('Erro: Cliente não identificado.');
+                    return;
+                }
+        
+                try {
+                    const response = await fetch('/orders', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            usuario_id: parseInt(clientId),
+                            itens: cart.map(item => ({
+                                produto_id: item.id,
+                                quantidade: item.quantity
+                            }))
+                        })
+                    });
+        
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.erro || 'Erro ao finalizar compra');
+                    }
+        
+                    alert('Compra finalizada com sucesso!');
+                    cart = [];
+                    renderCart();
+                } catch (error) {
+                    console.error('Erro:', error);
+                    alert('Erro ao finalizar compra. Tente novamente mais tarde.');
+                }
+            }
+        
+            // Evento de busca
+            searchInput.addEventListener('input', (e) => {
+                fetchProducts().then(products => {
+                    renderProducts(products, e.target.value);
+                });
+            });
+        
+            // Evento de finalizar compra
+            finalizeBtn.addEventListener('click', finalizePurchase);
+        
+            // Inicializar
+            fetchProducts();
+        });
+    </script>
+</body>
+</html>

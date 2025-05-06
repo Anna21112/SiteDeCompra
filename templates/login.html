@@ -5,17 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - Sistema de Vendas</title>
     <link rel="stylesheet" href="/static/css/styleLogin.css" />
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
 </head>
 <body>
     <div class="container">
         <div class="login-box">
             <h1>Sistema de Vendas</h1>
             <h2>Login</h2>
-            <form id="loginForm" action="/login" method="POST">
+            <form id="loginForm">
                 <label for="email">E-mail</label>
-                <input type="email" id="email" name="email" required />
+                <input type="email" id="email" required />
                 <label for="senha">Senha</label>
-                <input type="password" id="senha" name="senha" required />
+                <input type="password" id="senha" required />
                 <button type="submit">Entrar</button>
             </form>
             <p id="erro" class="erro"></p>
@@ -28,19 +29,26 @@
             const senha = document.getElementById('senha').value;
             const erroEl = document.getElementById('erro');
             erroEl.textContent = "";
-
+        
             const response = await fetch("http://localhost:5000/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, senha })
             });
-
+        
             const data = await response.json();
             if (!response.ok) {
                 erroEl.textContent = data.erro || "Falha no login.";
             } else {
-                localStorage.setItem("token", data.token);
-                window.location.href = "/dashboard";
+                localStorage.setItem("token", data.token); // Armazena o token
+                localStorage.setItem("clientId", data.clientId); // Armazena o clientId
+                localStorage.setItem("tipo", data.tipo); // Armazena o tipo de usuário
+        
+                if (data.tipo === "admin") {
+                    window.location.href = "/dashboard"; // Redireciona para o dashboard admin
+                } else {
+                    window.location.href = "/dashboardClient"; // Redireciona para o dashboard do cliente
+                }
             }
         });
     </script>
