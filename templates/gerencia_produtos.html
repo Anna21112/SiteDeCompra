@@ -57,9 +57,27 @@
           <label for="info">Informações:</label>
           <textarea id="info" required></textarea>
           <button type="button" onclick="saveProduct()">Salvar</button>
-          <button type="button" onclick="cancelCreateProduct()">
-            Cancelar
-          </button>
+          <button type="button" onclick="cancelCreateProduct()">Cancelar</button>
+        </form>
+      </section>
+
+      <!-- Modal para edição de produto -->
+      <section id="editProductForm" class="hidden">
+        <h2>Editar Produto</h2>
+        <form id="editProductFormContent">
+          <input type="hidden" id="editProductId" />
+          <label for="editNome">Nome:</label>
+          <input type="text" id="editNome" required />
+          <label for="editTipo">Tipo:</label>
+          <input type="text" id="editTipo" required />
+          <label for="editPreco">Preço:</label>
+          <input type="number" id="editPreco" step="0.01" required />
+          <label for="editQuantidade">Quantidade:</label>
+          <input type="number" id="editQuantidade" required />
+          <label for="editInfo">Informações:</label>
+          <textarea id="editInfo" required></textarea>
+          <button type="button" onclick="updateProduct()">Salvar</button>
+          <button type="button" onclick="cancelEditProduct()">Cancelar</button>
         </form>
       </section>
     </main>
@@ -74,20 +92,16 @@
         data.products.forEach((product) => {
           const row = document.createElement("tr");
           row.innerHTML = `
-                    <td>${product.id}</td>
-                    <td>${product.nome}</td>
-                    <td>${product.tipo}</td>
-                    <td>R$ ${product.preco.toFixed(2)}</td>
-                    <td>${product.quantidade}</td>
-                    <td>
-                        <button onclick="editProduct(${
-                          product.id
-                        })">Editar</button>
-                        <button onclick="deleteProduct(${
-                          product.id
-                        })">Excluir</button>
-                    </td>
-                `;
+            <td>${product.id}</td>
+            <td>${product.nome}</td>
+            <td>${product.tipo}</td>
+            <td>R$ ${product.preco.toFixed(2)}</td>
+            <td>${product.quantidade}</td>
+            <td>
+                <button onclick="editProduct(${product.id})">Editar</button>
+                <button onclick="deleteProduct(${product.id})">Excluir</button>
+            </td>
+          `;
           tableBody.appendChild(row);
         });
       }
@@ -107,19 +121,54 @@
         }
       }
 
-      // Edit product (redirect to a form or modal)
+      // Exibir o formulário de edição de produto
       function editProduct(productId) {
-        window.location.href = `/cadastro-produto?edit=${productId}`;
+        fetch(`/products/${productId}`)
+          .then((response) => response.json())
+          .then((product) => {
+            document.getElementById("editProductId").value = product.id;
+            document.getElementById("editNome").value = product.nome;
+            document.getElementById("editTipo").value = product.tipo;
+            document.getElementById("editPreco").value = product.preco;
+            document.getElementById("editQuantidade").value = product.quantidade;
+            document.getElementById("editInfo").value = product.info;
+
+            document.getElementById("editProductForm").classList.remove("hidden");
+          })
+          .catch(() => alert("Erro ao buscar produto."));
       }
 
-      // Logout functionality
-      document
-        .getElementById("logout")
-        .addEventListener("click", async function (e) {
-          e.preventDefault();
-          await fetch("/logout", { method: "POST" });
-          window.location.href = "/login";
+      // Cancelar a edição de produto
+      function cancelEditProduct() {
+        document.getElementById("editProductForm").classList.add("hidden");
+        document.getElementById("editProductFormContent").reset();
+      }
+
+      // Atualizar o produto
+      async function updateProduct() {
+        const id = document.getElementById("editProductId").value;
+        const nome = document.getElementById("editNome").value;
+        const tipo = document.getElementById("editTipo").value;
+        const preco = parseFloat(document.getElementById("editPreco").value);
+        const quantidade = parseInt(document.getElementById("editQuantidade").value);
+        const info = document.getElementById("editInfo").value;
+
+        const response = await fetch(`/products/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ nome, tipo, preco, quantidade, info }),
         });
+
+        if (response.ok) {
+          alert("Produto atualizado com sucesso!");
+          document.getElementById("editProductForm").classList.add("hidden");
+          fetchProducts(); // Recarrega a lista de produtos
+        } else {
+          alert("Erro ao atualizar produto.");
+        }
+      }
 
       // Exibir o formulário de criação de produto
       document
@@ -163,33 +212,6 @@
           alert("Erro ao criar produto.");
         }
       }
-
-      // Fetch and display products
-      async function fetchProducts() {
-        const response = await fetch("/products");
-        const data = await response.json();
-        const tableBody = document.getElementById("productTableBody");
-        tableBody.innerHTML = "";
-
-        data.products.forEach((product) => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${product.id}</td>
-            <td>${product.nome}</td>
-            <td>${product.tipo}</td>
-            <td>R$ ${product.preco.toFixed(2)}</td>
-            <td>${product.quantidade}</td>
-            <td>
-                <button onclick="editProduct(${product.id})">Editar</button>
-                <button onclick="deleteProduct(${product.id})">Excluir</button>
-            </td>
-        `;
-          tableBody.appendChild(row);
-        });
-      }
-
-      // Fetch products on page load
-      fetchProducts();
 
       // Fetch products on page load
       fetchProducts();

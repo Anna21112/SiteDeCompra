@@ -189,16 +189,21 @@ def get_order(id):
         'status': order.status,
         'valor_total': order.valor_total,
         'data_criacao': order.data_criacao.strftime('%Y-%m-%d %H:%M:%S'),
-        'itens': [
-            {
-                'produto_id': item.produto_id,
-                'produto_nome': Produto.query.get(item.produto_id).nome,
-                'quantidade': item.quantidade,
-                'preco_unitario': item.preco_unitario
-            }
-            for item in itens
-        ]
+        'itens': []
     }
+
+    for item in itens:
+        produto = Produto.query.get(item.produto_id)
+        if not produto:
+            app.logger.error(f"Produto com ID {item.produto_id} não encontrado.")
+            continue  # Ignora o item se o produto não for encontrado
+
+        order_details['itens'].append({
+            'produto_id': item.produto_id,
+            'produto_nome': produto.nome,
+            'quantidade': item.quantidade,
+            'preco_unitario': item.preco_unitario
+        })
 
     return jsonify(order_details), 200
 
@@ -279,8 +284,16 @@ def update_order(pedido_id):
 @app.route('/orders/<int:id>', methods=['DELETE'])
 def delete_order(id):
     order = Pedido.query.get_or_404(id)
+    
+    # Deleta os itens associados ao pedido
+    itens = ItemPedido.query.filter_by(pedido_id=order.id).all()
+    for item in itens:
+        db.session.delete(item)
+    
+    # Deleta o pedido
     db.session.delete(order)
     db.session.commit()
+    
     logging.info(f"Pedido deletado: ID {id}")
     return {'message': 'Order deleted successfully'}, 200
 
@@ -484,6 +497,8 @@ def handle_exception(e):
 
 
 #===================== TEMPLATES =====================
+
+@app.route('/')
 @app.route('/login', methods=['GET'])
 def render_login():
     return render_template('login.html')
